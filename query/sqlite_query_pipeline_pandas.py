@@ -158,22 +158,25 @@ def create_pipeline(question: str):
                 Answer:""")
     analysis_prompt = PromptBuilder(template="""I asked: {{question}}
 
-    The SQL query used was:
-    {{query}}
+                The SQL query used was:
+                {{query}}
 
-    The data from the database shows:
-    {{results}}
+                The data from the database shows:
+                {{results}}
 
-    Follow these instructions in formulating your response:
-        - Print the results in a tabular format wrapped in a codeblock above your analysis.
-        - Start your answer with the table; don't tell the user anything like 'here is the result'.
-        - Translate any month numbers to names, and add a $ to any dollar amount.
-        - Don't truncate the list of results unless it exceeds 30 rows.
-        - Add a natural language analysis of this data that answers my original question. 
-        - Include specific numbers and trends if relevant. 
-        - Make it conversational but informative.
+                Follow these instructions in formulating your response:
+                    - If there are zero results, ignore the remaining instructions and inform the user there were no results.
+                    Helpfully and briefly suggest that they try their search again, optionally tweaking the question for better results.
+                    Do not include anything else other than this answer, specifically do not include the table.
+                    - If there are more than zero results, print the results in a tabular format wrapped in a codeblock above your analysis.
+                    - Start your answer with the table; don't tell the user anything like 'here is the result'.
+                    - Translate any month numbers to names, and add a $ to any dollar amount.
+                    - Don't truncate the list of results unless it exceeds 30 rows.
+                    - Add a natural language analysis of this data that answers my original question. 
+                    - Include specific numbers and trends if relevant. 
+                    - Make it conversational but informative.
 
-    Response:""")
+                Response:""")
 
     base_model = os.getenv('BASE_MODEL')
     analysis_model = os.getenv('ANALYSIS_MODEL')

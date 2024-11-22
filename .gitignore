@@ -6,5 +6,5 @@ database.ini
 *.db-wal
 .env
 !.env.example
-data/
+data/*
 !data/*.md

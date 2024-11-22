@@ -202,6 +202,7 @@ def create_pipeline():
 
     sql_pipeline = Pipeline()
 
+    # Create components
     sql_pipeline.add_component("query_helper", query_helper)
     sql_pipeline.add_component("question_holder", question_holder)
     sql_pipeline.add_component("sql_prompt", sql_prompt)
@@ -210,16 +211,25 @@ def create_pipeline():
     sql_pipeline.add_component("analysis_prompt", analysis_prompt)
     sql_pipeline.add_component("analysis_generator", analysis_generator)
 
+    # Load the initial prompt with the query and additional context
     sql_pipeline.connect("query_helper.curr_date", "sql_prompt.curr_date")
     sql_pipeline.connect("query_helper.schema", "sql_prompt.schema")
     sql_pipeline.connect("query_helper.categories", "sql_prompt.categories")
     sql_pipeline.connect("query_helper.accounts", "sql_prompt.accounts")
     sql_pipeline.connect("question_holder.question", "sql_prompt.question")
+
+    # Send the prompt to the generator
     sql_pipeline.connect("sql_prompt.prompt", "sql_generator.prompt")
+    
+    # Send the reply to the SQL querier
     sql_pipeline.connect("sql_generator.replies", "sql_querier.queries")
+    
+    # Send the origin question, query, and results to the analyzer prompt
     sql_pipeline.connect("sql_querier.results", "analysis_prompt.results")
     sql_pipeline.connect("sql_querier.query", "analysis_prompt.query")
     sql_pipeline.connect("question_holder.question", "analysis_prompt.question")
+
+    # Send the prompt to the analyzer
     sql_pipeline.connect("analysis_prompt.prompt", "analysis_generator.prompt")
 
     return sql_pipeline

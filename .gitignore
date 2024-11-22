@@ -8,3 +8,4 @@ database.ini
 !.env.example
 data/*
 !data/*.md
+!data/update-db.py

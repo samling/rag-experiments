@@ -108,18 +108,6 @@ class SQLQuery:
             print("Connected.")
         return self._connection
 
-    def get_columns(self, table_name: str) -> List[str]:
-        if not hasattr(self, '_columns_cache'):
-            self._columns_cache = {}
-        
-        if table_name not in self._columns_cache:
-            cursor = self._get_connection()
-            cursor.execute(f"PRAGMA table_info({table_name})")
-            columns = cursor.fetchall()
-            self._columns_cache[table_name] = [col[1] for col in columns]
-
-        return self._columns_cache[table_name]
-    
     @component.output_types(results=Any, query=Any)
     def run(self, queries: List[str]):
         query = queries[0]

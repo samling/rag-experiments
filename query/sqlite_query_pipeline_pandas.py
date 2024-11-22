@@ -5,7 +5,7 @@ import pandas as pd
 import sqlite3
 import textwrap
 from dotenv import load_dotenv
-from typing import List, Any
+from typing import List, Any, Optional
 from haystack import component, Pipeline
 from haystack.components.builders import PromptBuilder
 from haystack.components.generators.openai import OpenAIGenerator
@@ -110,7 +110,7 @@ class SQLQuery:
             print("Connected.")
         return self._connection
 
-    @component.output_types(results=Any, query=Any)
+    @component.output_types(results=Optional[str], query=str, error_message=Optional[str])
     def run(self, queries: List[str]):
         query = queries[0]
         print(f"\nExecuting query:")
@@ -122,10 +122,11 @@ class SQLQuery:
                 connection,
             )
             result = df.to_string(index=False)
-            return {"results": result, "query": query}
+            return {"results": result, "query": query, "error_message": None}
         except Exception as e:
-            print(f"\nError processing query: {str(e)}")
-            return {"results": f"Error: {str(e)}", "query": query}
+            error_message = f"Database query error: {str(e)}"
+            print(f"\nError processing query: {error_message}")
+            return {"results": None, "query": query, "error_message": error_message}
 
 def create_pipeline(question: str):
     sql_prompt = PromptBuilder(template="""
@@ -161,6 +162,17 @@ def create_pipeline(question: str):
                 The SQL query used was:
                 {{query}}
 
+                {% if error_message %}
+
+                There was an error executing the query:
+
+                {{error_message}}
+                
+                Inform the user there was an error and helpfully and briefly suggest that they try asking again, or rephrasing their question.
+                Let them know that sometimes models make mistakes and that rerunning can sometimes provide better results.
+
+                {% else %}
+
                 The data from the database shows:
                 {{results}}
 
@@ -175,6 +187,8 @@ def create_pipeline(question: str):
                     - Add a natural language analysis of this data that answers my original question. 
                     - Include specific numbers and trends if relevant. 
                     - Make it conversational but informative.
+
+                {% endif %}
 
                 Response:""")
 
@@ -212,6 +226,7 @@ def create_pipeline(question: str):
     # Send the origin question, query, and results to the analyzer prompt
     sql_pipeline.connect("sql_querier.results", "analysis_prompt.results")
     sql_pipeline.connect("sql_querier.query", "analysis_prompt.query")
+    sql_pipeline.connect("sql_querier.error_message", "analysis_prompt.error_message")
     sql_pipeline.connect("query_helper.question", "analysis_prompt.question")
 
     # Send the prompt to the analyzer
@@ -241,6 +256,9 @@ if __name__ == "__main__":
         if "analysis_generator" in result and result["analysis_generator"]["replies"]:
             print("\nAnswer:")
             print_indented(result['analysis_generator']['replies'][0])
+        elif "sql_querier" in result and result["sql_querier"]["error_message"]:
+            print("\nAnswer:")
+            print_indented(result['sql_querier']['error_message'])
         else:
             print("\nNo analysis generated.")
 

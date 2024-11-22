@@ -28,6 +28,12 @@ def print_indented(text, indent=4):
     print("\n".join(indented_lines))
 
 @component
+class QuestionHolder:
+    @component.output_types(question=str)
+    def run(self, question: str):
+        return {"question": question}
+
+@component
 class QueryHelper:
     def __init__(self, sql_database: str):
         self.db_path = sql_database
@@ -124,12 +130,6 @@ class SQLQuery:
         except Exception as e:
             print(f"\nError processing query: {str(e)}")
             return {"results": f"Error: {str(e)}", "query": query}
-
-@component
-class QuestionHolder:
-    @component.output_types(question=str)
-    def run(self, question: str):
-        return {"question": question}
 
 def create_pipeline():
     sql_prompt = PromptBuilder(template="""

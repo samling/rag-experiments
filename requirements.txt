@@ -1,0 +1,7 @@
+accelerate
+# fastembed-haystack
+cohere-haystack
+milvus-haystack
+psycopg2 # requres libpq-dev
+pymilvus==2.4.9
+sqlalchemy

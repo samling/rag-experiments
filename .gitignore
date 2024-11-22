@@ -1,0 +1,10 @@
+__pycache__
+database.ini
+!database.ini.example
+*.db
+*.db-shm
+*.db-wal
+.env
+!.env.example
+data/
+!data/*.md

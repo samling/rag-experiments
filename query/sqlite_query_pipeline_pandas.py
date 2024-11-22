@@ -28,15 +28,10 @@ def print_indented(text, indent=4):
     print("\n".join(indented_lines))
 
 @component
-class QuestionHolder:
-    @component.output_types(question=str)
-    def run(self, question: str):
-        return {"question": question}
-
-@component
 class QueryHelper:
-    def __init__(self, sql_database: str):
+    def __init__(self, sql_database: str, question: str):
         self.db_path = sql_database
+        self.question = question
         self._connection = None
 
     @property
@@ -84,13 +79,14 @@ class QueryHelper:
             print(f"\nError getting accounts: {str(e)}")
             return ""
 
-    @component.output_types(curr_date=str, schema=str, categories=str, accounts=str)
+    @component.output_types(question=str, curr_date=str, schema=str, categories=str, accounts=str)
     def run(self, table_name: str = 'transactions'):
+        question = self.question
         curr_date = self.get_current_date()
         schema = self.get_schema(table_name)
         categories = self.get_categories(table_name)
         accounts = self.get_accounts(table_name)
-        return {"curr_date": curr_date, "schema": schema, "categories": categories, "accounts": accounts}
+        return {"question": question, "curr_date": curr_date, "schema": schema, "categories": categories, "accounts": accounts}
 
 @component
 class SQLQuery:
@@ -131,7 +127,7 @@ class SQLQuery:
             print(f"\nError processing query: {str(e)}")
             return {"results": f"Error: {str(e)}", "query": query}
 
-def create_pipeline():
+def create_pipeline(question: str):
     sql_prompt = PromptBuilder(template="""
                 Please generate a SQL query. The query should answer the following Question: {{question}};
 
@@ -182,8 +178,7 @@ def create_pipeline():
     base_model = os.getenv('BASE_MODEL')
     analysis_model = os.getenv('ANALYSIS_MODEL')
 
-    query_helper = QueryHelper(sql_database=database)
-    question_holder = QuestionHolder()
+    query_helper = QueryHelper(sql_database=database, question=question)
     sql_generator = OpenAIGenerator(model=base_model, timeout=30)
     sql_querier = SQLQuery(sql_database=database)
     analysis_generator = OpenAIGenerator(model=analysis_model, timeout=30)
@@ -192,7 +187,6 @@ def create_pipeline():
 
     # Create components
     sql_pipeline.add_component("query_helper", query_helper)
-    sql_pipeline.add_component("question_holder", question_holder)
     sql_pipeline.add_component("sql_prompt", sql_prompt)
     sql_pipeline.add_component("sql_generator", sql_generator)
     sql_pipeline.add_component("sql_querier", sql_querier)
@@ -200,11 +194,11 @@ def create_pipeline():
     sql_pipeline.add_component("analysis_generator", analysis_generator)
 
     # Load the initial prompt with the query and additional context
+    sql_pipeline.connect("query_helper.question", "sql_prompt.question")
     sql_pipeline.connect("query_helper.curr_date", "sql_prompt.curr_date")
     sql_pipeline.connect("query_helper.schema", "sql_prompt.schema")
     sql_pipeline.connect("query_helper.categories", "sql_prompt.categories")
     sql_pipeline.connect("query_helper.accounts", "sql_prompt.accounts")
-    sql_pipeline.connect("question_holder.question", "sql_prompt.question")
 
     # Send the prompt to the generator
     sql_pipeline.connect("sql_prompt.prompt", "sql_generator.prompt")
@@ -215,7 +209,7 @@ def create_pipeline():
     # Send the origin question, query, and results to the analyzer prompt
     sql_pipeline.connect("sql_querier.results", "analysis_prompt.results")
     sql_pipeline.connect("sql_querier.query", "analysis_prompt.query")
-    sql_pipeline.connect("question_holder.question", "analysis_prompt.question")
+    sql_pipeline.connect("query_helper.question", "analysis_prompt.question")
 
     # Send the prompt to the analyzer
     sql_pipeline.connect("analysis_prompt.prompt", "analysis_generator.prompt")
@@ -228,16 +222,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     question: str = args.query
 
-    sql_pipeline = create_pipeline()
+    sql_pipeline = create_pipeline(question)
 
     try:
         print("\nStarting pipeline execution...")
         print(f"\nYour question:\n    {question}")
         result = sql_pipeline.run(
             {
-                "question_holder": {
-                    "question": question
-                },
                 "query_helper": {
                     "table_name": "transactions"
                 },

@@ -1,7 +1,11 @@
-accelerate
+# accelerate
 # fastembed-haystack
-cohere-haystack
-milvus-haystack
-psycopg2 # requres libpq-dev
-pymilvus==2.4.9
-sqlalchemy
+# cohere-haystack
+# milvus-haystack
+# psycopg2 # requres libpq-dev
+# pymilvus==2.4.9
+# sqlalchemy
+
+llama-index
+llama-index-vector-stores-milvus
+IPython

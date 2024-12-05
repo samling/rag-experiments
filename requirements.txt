@@ -6,6 +6,10 @@
 # pymilvus==2.4.9
 # sqlalchemy
 
+langfuse
 llama-index
 llama-index-vector-stores-milvus
+llama-index-embeddings-cohere
+llama-index-embeddings-litellm
+llama-index-llms-litellm
 IPython
